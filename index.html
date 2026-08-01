@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="google" content="notranslate" />
+    <title>tất cả câu hỏi kinh tế</title>
+    
+    <!-- CSS Framework -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script> 
+    
+    <!-- KaTeX & DOMPurify -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body id="main-body">
+
+    <!-- RESUME MODAL (AUTO-SAVE) -->
+    <div id="resume-modal" class="modal">
+        <div class="modal-content">
+            <h3 style="margin-top:0;">Phát hiện bài làm chưa hoàn thành</h3>
+            <p style="margin-bottom: 20px; color: #555;">Hệ thống đã lưu lại tiến trình làm bài trước đó của bạn. Bạn muốn tiếp tục hay làm mới?</p>
+            <div class="button-group" style="gap: 15px;">
+                <button class="btn btn-success" onclick="resumeQuiz()">Tiếp tục làm bài</button>
+                <button class="btn btn-danger" onclick="discardResume()">Làm mới từ đầu</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- REWARD OVERLAY -->
+    <div id="reward-overlay">
+        <div id="reward-status-text"></div>
+    </div>
+    <div id="reward-badge">COMBO x0</div>
+
+    <div class="container" id="main-container">
+        <!-- LOGIN SCREEN -->
+        <div id="login-screen" class="screen active">
+            <h1>Chào mừng!</h1>
+            <p style="text-align: center; margin-bottom: 20px;">Vui lòng nhập tên của bạn để bắt đầu.</p>
+            <input type="text" id="username-input" placeholder="Nhập tên của bạn..." class="w-full p-2 border rounded mb-4">
+            <div class="button-group"><button id="login-btn" class="btn">Vào Menu Chính</button></div>
+        </div>
+
+        <!-- HOME SCREEN -->
+        <div id="home-screen" class="screen">
+            <h1>tất cả câu hỏi kinh tế</h1>
+            <p id="user-greeting" style="text-align: center; margin-bottom: 20px; color: var(--secondary-color);"></p>
+            <div class="button-group">
+                <button class="btn" style="background-color: var(--success-color);" onclick="showScreen('pre-quiz-menu-screen')">Bắt đầu làm bài</button>
+                <button class="btn btn-secondary" onclick="showHistoryScreen()">Lịch sử làm bài</button>
+            </div>
+            <p style="text-align:center; font-size: 12px; color: #999; margin-top: 20px;">Dữ liệu được lưu an toàn trong trình duyệt</p>
+        </div>
+
+        <!-- HISTORY SCREEN -->
+        <div id="history-screen" class="screen">
+            <h2>Lịch sử làm bài</h2>
+            <div id="history-list-container">
+                <!-- Nội dung lịch sử sẽ render ở đây -->
+            </div>
+            <div class="button-group" style="margin-top: 20px;">
+                <button class="btn btn-secondary" onclick="showScreen('home-screen')">Quay lại</button>
+            </div>
+        </div>
+
+        <!-- MENU SCREEN -->
+        <div id="pre-quiz-menu-screen" class="screen">
+             <h2>Tùy chọn làm bài</h2>
+             <div id="quiz-part-selector-container" style="display:none; margin-bottom: 20px; text-align: center;">
+                 <label for="quiz-part-selector" style="display:block; margin-bottom: 8px; font-weight:bold;">Đề bài (từ file ZIP):</label>
+                 <select id="quiz-part-selector" onchange="renderSubOptions()" style="padding: 10px; border-radius: 8px; border: 1px solid #ddd; width: 100%; max-width: 300px; font-size: 16px;"></select>
+             </div>
+
+             <div class="button-group" style="margin-bottom: 15px;">
+                 <button id="menu-shuffle-btn" class="btn">Trộn câu hỏi và đáp án: Tắt</button>
+             </div>
+
+             <div id="sections-container" style="margin-bottom: 20px;">
+                 <h3 style="font-size: 16px; margin-bottom: 10px; color: var(--text-color);">Chọn phần để bắt đầu:</h3>
+                 <div id="sections-list" class="button-group" style="display: flex; flex-direction: column; gap: 10px;">
+                     <!-- Nút Bắt đầu sẽ được tạo qua JavaScript -->
+                 </div>
+             </div>
+
+             <div id="chunks-container" style="margin-bottom: 20px; text-align: left; background: #f9f9f9; padding: 15px; border-radius: 8px; border: 1px solid #ddd;">
+                 <h3 style="font-size: 16px; margin-bottom: 10px; color: var(--text-color); display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none;" onclick="toggleChunksList()">
+                    Chia nhỏ để học <span id="chunks-collapse-icon" style="font-size: 12px; transition: transform 0.2s;">▼</span>
+                 </h3>
+                 <div id="chunks-body" style="display: none;">
+                     <div style="margin-bottom: 15px; text-align: center;">
+                        <label style="font-weight: bold;">Chia mỗi: <input type="text" id="chunk-size-input" value="20" style="width: 60px; text-align: center; border: 1px solid #ccc; padding: 6px; border-radius: 4px; font-size: 16px;"> câu</label>
+                     </div>
+                     <div id="chunks-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; max-height: 250px; overflow-y: auto; padding-right: 5px;">
+                         <!-- Nút Chunk sẽ được tạo qua JavaScript -->
+                     </div>
+                 </div>
+             </div>
+
+             <div class="button-group">
+                <button id="menu-back-btn" class="btn btn-secondary" onclick="showScreen('home-screen')">Quay Lại</button>
+            </div>
+        </div>
+
+        <!-- QUIZ SCREEN -->
+        <div id="quiz-section" class="screen">
+            <div id="settings-icon-container" style="display: none;">
+                <div class="hamburger-line"></div>
+                <div class="hamburger-line"></div>
+                <div class="hamburger-line"></div>
+            </div>
+            <div id="settings-panel">
+                <div class="settings-row">
+                    <label>Âm thanh</label>
+                    <button id="master-volume-btn" class="icon-btn" style="background:none;border:none;" title="Nhấn để Tắt/Bật"></button>
+                </div>
+                <div id="detailed-audio-settings">
+                    <div class="settings-row">
+                        <label for="music-toggle">Nhạc nền</label>
+                        <label class="switch"><input type="checkbox" id="music-toggle"><span class="slider"></span></label>
+                    </div>
+                    <div class="settings-row">
+                        <label for="correct-sound-toggle">Khi trả lời đúng</label>
+                        <label class="switch"><input type="checkbox" id="correct-sound-toggle"><span class="slider"></span></label>
+                    </div>
+                     <div class="settings-row">
+                        <label for="incorrect-sound-toggle">Khi trả lời sai</label>
+                        <label class="switch"><input type="checkbox" id="incorrect-sound-toggle"><span class="slider"></span></label>
+                    </div>
+                </div>
+                <hr style="margin: 15px 0;">
+                <div class="settings-row">
+                    <label for="auto-advance-toggle">Tự động chuyển câu</label>
+                    <label class="switch">
+                        <input type="checkbox" id="auto-advance-toggle">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+            
+            <!-- PROGRESS BAR AREA -->
+            <div class="progress-wrapper">
+                <div class="progress-bar-container" id="progress-bar-visual"></div>
+                <div class="progress-info">
+                    <strong style="color: #333;">Thống kê:</strong>
+                    <span style="color: var(--success-color); font-weight: bold;">
+                        <span id="stat-correct-ratio">0/0</span> 
+                        (<span id="stat-correct-percent">0%</span>)
+                    </span>
+                    <span style="color: #ccc;">|</span>
+                    <span style="color: var(--danger-color); font-weight: bold;">
+                        <span id="stat-incorrect-ratio">0/0</span> 
+                        (<span id="stat-incorrect-percent">0%</span>)
+                    </span>
+                    <!-- COMBO BADGE -->
+                    <span id="combo-display" class="combo-counter" style="display:none;">COMBO x0</span>
+                </div>
+            </div>
+
+            <h2 id="quiz-title">Nội dung bài thi</h2>
+            <div id="quiz-live-container"></div>
+            
+            <!-- RESULT CONTAINER -->
+            <div id="results-container" style="display:none; text-align: center;">
+                <h2>Kết Quả</h2>
+                <p id="final-score" class="text-2xl font-bold mb-4"></p>
+                <div class="button-group">
+                    <button id="retry-btn" class="btn" style="background-color: var(--success-color);" onclick="startQuizFromMenu()">Làm Lại (Tất cả)</button>
+                    <button id="retry-wrong-btn" class="btn btn-warning" onclick="retryWrongQuestions()">Làm lại câu sai</button>
+                    <button id="exit-btn-result" class="btn btn-danger" onclick="exitAndClearState()">Thoát</button>
+                </div>
+            </div>
+
+            <!-- CONTROLS WHEN TAKING QUIZ -->
+            <div class="button-group" id="quiz-controls" style="padding-bottom: 20px;">
+                <button id="submit-early-btn" class="btn btn-warning" style="display:none;" onclick="submitEarly()">Nộp Bài Sớm</button>
+                <button id="exit-btn" class="btn btn-danger" onclick="exitAndClearState()">Thoát</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FLOATING ACTION BAR -->
+    <div id="fixed-action-bar" class="floating-action-bar" style="display: none;">
+        <button id="fixed-action-btn" class="btn">Trả Lời</button>
+    </div>
+
+    <!-- HELP MODAL -->
+    <div id="helpModal" class="modal">
+        <div class="modal-content">
+            <h3>Trợ giúp & Hướng dẫn</h3>
+            <ul>
+                <li><span class="icon">🎨</span><strong>Màu nền giống nhau:</strong> Các đáp án có cùng màu nền ở cột "Đề gốc" và cột "Đề đảo" là cùng một đáp án.</li>
+                 <li><span class="icon" style="color: var(--success-color); font-weight: bold;">■</span><strong style="color: var(--success-color);">Chữ Xanh Lá & In Đậm:</strong> Là đáp án đúng mà bạn đã chọn đúng.</li>
+                 <li><span class="icon" style="color: var(--success-color);">■</span><span style="color: var(--success-color); text-decoration: underline;">Chữ Xanh Lá & Gạch chân:</span> Là đáp án đúng bạn đã bỏ sót.</li>
+                 <li><span class="icon" style="color: var(--danger-color);">■</span><strong style="color: var(--danger-color);">Chữ Đỏ:</strong> Là đáp án sai mà bạn đã chọn.</li>
+            </ul>
+            <div class="button-group">
+                <button class="btn btn-secondary" onclick="document.getElementById('helpModal').style.display='none'">Đã hiểu</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
